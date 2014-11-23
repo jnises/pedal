@@ -10,6 +10,14 @@ namespace deepness
         return (T(0) < val) - (val < T(0));
     }
 
+    std::function<float (float, double)> combine(std::function<float (float, double)> a, std::function<float (float, double)> b)
+    {
+        return [a,b](float in, double time) -> float
+        {
+            return b(a(in, time), time);
+        };
+    }
+
     float passthrough(float in, double time)
     {
         return in;
@@ -17,7 +25,7 @@ namespace deepness
 
     float fuzz(float in, double time)
     {
-        return sign(in) * pow(abs(in), 0.7);
+        return sign(in) * std::pow(std::abs(in), 0.7f);
     }
 
     class Delay
