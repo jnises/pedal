@@ -6,6 +6,12 @@
 using namespace deepness;
 using namespace std;
 
+template <typename T>
+T sign(T val)
+{
+    return (T(0) < val) - (val < T(0));
+}
+
 float volume(const float *in, unsigned long samples)
 {
     auto volume = 0.f;
@@ -37,15 +43,17 @@ float passthrough(float in, double time)
     return in;
 }
 
-// void fuzz(const float *in, float *out, unsigned long samples, double time)
-// {
-//     for(size_t i = 0; i < 
-// }
+float fuzz(float in, double time)
+{
+    return sign(in) * pow(abs(in), 0.7);
+}
 
 int main(int argc, char *argv[])
 {
     std::cerr << Pa_GetVersionText() << std::endl;
-    AudioObject audio(printVolume(iterate(&passthrough)));
+    //auto effect = &passthrough;
+    auto effect = &fuzz;
+    AudioObject audio(printVolume(iterate(effect)));
     std::cerr << "Press any key to stop" << std::endl;
     std::cin.get();
     return 0;
