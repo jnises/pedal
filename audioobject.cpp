@@ -5,7 +5,6 @@ namespace deepness
     AudioObject::AudioObject(CallbackFunc func)
         :m_stream(nullptr)
         ,m_callback(std::move(func))
-        ,m_time(0.)
     {
         auto err = Pa_Initialize();
         if(paNoError != err)
@@ -64,8 +63,7 @@ namespace deepness
         audioobject->m_callback(static_cast<const float *>(inputBuffer),
                                 static_cast<float *>(outputBuffer),
                                 framesPerBuffer,
-                                audioobject->m_time);
-        audioobject->m_time += framesPerBuffer / s_sampleRate;
+                                s_sampleRate);
         return paContinue;
     }
 }

@@ -15,21 +15,21 @@ float volume(const float *in, unsigned long samples)
     return sqrt(volume / static_cast<float>(samples));
 }
 
-std::function<void (const float *in, float *out, unsigned long samples, double time)> printVolume(std::function<void (const float *in, float *out, unsigned long samples, double time)> func)
+std::function<void (const float *, float *, unsigned long, double)> printVolume(std::function<void (const float *in, float *out, unsigned long samples, double sampleRate)> func)
 {
-    return [func](const float *in, float *out, unsigned long samples, double time)
+    return [func](const float *in, float *out, unsigned long samples, double sampleRate)
     {
-        func(in, out, samples, time);
+        func(in, out, samples, sampleRate);
         cout << fixed << volume(out, samples) << "\r";
     };
 }
 
-std::function<void (const float *, float *, unsigned long, double)> iterate(function<float (float in, double time)> func)
+std::function<void (const float *, float *, unsigned long, double)> iterate(function<float (float in, double sampleRate)> func)
 {
-    return [func](const float *in, float *out, unsigned long samples, double time)
+    return [func](const float *in, float *out, unsigned long samples, double sampleRate)
     {
         for(size_t i = 0; i < samples; ++i)
-            out[i] = func(in[i], time);
+            out[i] = func(in[i], sampleRate);
     };
 }
 

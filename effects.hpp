@@ -12,18 +12,18 @@ namespace deepness
 
     std::function<float (float, double)> combine(std::function<float (float, double)> a, std::function<float (float, double)> b)
     {
-        return [a,b](float in, double time) -> float
+        return [a,b](float in, double sampleRate) -> float
         {
-            return b(a(in, time), time);
+            return b(a(in, sampleRate), sampleRate);
         };
     }
 
-    float passthrough(float in, double time)
+    float passthrough(float in, double)
     {
         return in;
     }
 
-    float fuzz(float in, double time)
+    float fuzz(float in, double)
     {
         return sign(in) * std::pow(std::abs(in), 0.7f);
     }
@@ -35,7 +35,7 @@ namespace deepness
             :m_pos(0)
             ,m_samples{}
         {}
-        float operator()(float in, double time)
+        float operator()(float in, double)
         {
             m_pos = (m_pos + 1) % m_samples.size();
             auto inpos = (m_pos - 1) % m_samples.size();

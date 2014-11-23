@@ -23,7 +23,7 @@ namespace deepness
         private:
             std::string m_message;
         };
-        using CallbackFunc = std::function<void (const float *inputBuffer, float *outputBuffer, unsigned long numSamples, double timeInSeconds)>;
+        using CallbackFunc = std::function<void (const float *inputBuffer, float *outputBuffer, unsigned long numSamples, double sampleRate)>;
 
         AudioObject(CallbackFunc);
         ~AudioObject();
@@ -39,7 +39,6 @@ namespace deepness
 
         PaStream *m_stream;
         CallbackFunc m_callback;
-        double m_time;
 
         static constexpr double s_sampleRate = 48000;
         static constexpr unsigned long s_bufferSampleLength = 64;
