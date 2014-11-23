@@ -37,7 +37,8 @@ int main(int argc, char *argv[])
 {
     std::cerr << Pa_GetVersionText() << std::endl;
     //auto effect = &passthrough;
-    auto effect = &fuzz;
+    //auto effect = &fuzz;
+    auto effect = Delay();
     AudioObject audio(printVolume(iterate(effect)));
     std::cerr << "Press any key to stop" << std::endl;
     std::cin.get();
