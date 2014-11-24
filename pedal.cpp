@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
     //auto effect = &fuzz;
     //auto effect = Delay(sampleRate);
     auto effect = combine(Delay(sampleRate), &fuzz, &passthrough);
-    AudioObject audio(printVolume(iterate(effect)));
+    AudioObject audio(iterate(effect), sampleRate);
     std::cerr << "Press any key to stop" << std::endl;
     std::cin.get();
     return 0;
