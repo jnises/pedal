@@ -1,5 +1,5 @@
 env = Environment(CXX = 'clang++',
-                  CXXFLAGS = '--std=c++11')
+                  CXXFLAGS = '--std=c++1y')
 env.ParseConfig('pkg-config --cflags --libs portaudio-2.0')
 debug = ARGUMENTS.get('debug', 0)
 if int(debug):

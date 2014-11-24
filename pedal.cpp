@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
     //auto effect = &passthrough;
     //auto effect = &fuzz;
     //auto effect = Delay(sampleRate);
-    auto effect = combine(Delay(sampleRate), &fuzz);
+    auto effect = combine(Delay(sampleRate), &fuzz, &passthrough);
     AudioObject audio(printVolume(iterate(effect)));
     std::cerr << "Press any key to stop" << std::endl;
     std::cin.get();

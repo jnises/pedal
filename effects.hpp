@@ -10,15 +10,49 @@ namespace deepness
         return (T(0) < val) - (val < T(0));
     }
 
-    std::function<float (float)> combine(std::function<float (float)> a, std::function<float (float)> b)
+    // std::function<float (float)> combine(std::function<float (float)> a, std::function<float (float)> b)
+    // {
+    //     return [a,b](float in) -> float
+    //     {
+    //         return b(a(in));
+    //     };
+    // }
+
+    std::function<float (float)> combine(std::function<float (float)> a)
     {
-        return [a,b](float in) -> float
+        return std::move(a);
+    }
+
+
+    template<typename... Rest>
+    std::function<float (float)> combine(std::function<float (float)> a, Rest&&... rest)
+    {
+        return [a, b = combine(std::forward<Rest>(rest)...)](float in) -> float
         {
             return b(a(in));
         };
     }
 
-    float passthrough(float in, double)
+    /*!
+      Apply a chain of effects in the order specified.
+    */
+    class Chain
+    {
+    public:
+        Chain(std::vector<std::function<float (float)>> effects)
+            :m_effects(std::move(effects))
+        {}
+        float operator()(float in)
+        {
+            for(auto &&effect: m_effects)
+                in = effect(in);
+            return in;
+        }
+    private:
+        std::vector<std::function<float (float)>> m_effects;
+    };
+
+    float passthrough(float in)
     {
         return in;
     }
