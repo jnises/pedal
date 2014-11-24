@@ -10,15 +10,16 @@ namespace deepness
         return (T(0) < val) - (val < T(0));
     }
 
-    std::function<float (float)> combine(std::function<float (float)> a)
+    template<typename First>
+    auto combine(First &&a)
     {
-        return std::move(a);
+        return std::forward<First>(a);
     }
 
-    template<typename... Rest>
-    std::function<float (float)> combine(std::function<float (float)> a, Rest&&... rest)
+    template<typename First, typename... Rest>
+    auto combine(First &&a, Rest&&... rest)
     {
-        return [a = std::move(a), b = combine(std::forward<Rest>(rest)...)](float in) -> float
+        return [a = std::forward<First>(a), b = combine(std::forward<Rest>(rest)...)](float in) mutable -> float
         {
             return b(a(in));
         };
