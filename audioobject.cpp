@@ -2,7 +2,7 @@
 
 namespace deepness
 {
-    AudioObject::AudioObject(CallbackFunc func)
+    AudioObject::AudioObject(CallbackFunc func, double sampleRate)
         :m_stream(nullptr)
         ,m_callback(std::move(func))
     {
@@ -29,7 +29,7 @@ namespace deepness
         err = Pa_OpenStream(&m_stream,
                             &inputParameters,
                             &outputParameters,
-                            s_sampleRate,
+                            sampleRate,
                             s_bufferSampleLength,
                             paNoFlag,
                             rawcallback,
@@ -62,8 +62,12 @@ namespace deepness
         auto *audioobject = static_cast<AudioObject *>(userData);
         audioobject->m_callback(static_cast<const float *>(inputBuffer),
                                 static_cast<float *>(outputBuffer),
-                                framesPerBuffer,
-                                s_sampleRate);
+                                framesPerBuffer);
         return paContinue;
+    }
+
+    double AudioObject::getSampleRate() const
+    {
+        return Pa_GetStreamInfo(m_stream)->sampleRate;
     }
 }
