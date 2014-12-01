@@ -36,6 +36,34 @@ namespace deepness
         return sign(in) * std::pow(std::abs(in), 0.7f);
     }
 
+    class Gain
+    {
+    public:
+        Gain(float gain)
+            :m_gain(gain)
+        {}
+        float operator()(float in)
+        {
+            return in * m_gain;
+        }
+    private:
+        float m_gain;
+    };
+
+    class Compress
+    {
+    public:
+        Compress(float amount)
+            :m_amount(1.f / amount)
+        {}
+        float operator()(float in)
+        {
+            return sign(in) * std::pow(std::abs(in), m_amount);
+        }
+    private:
+        float m_amount;
+    };
+
     class Delay
     {
     public:
@@ -57,4 +85,9 @@ namespace deepness
         std::size_t m_pos;
         double m_sampleRate;
     };
+
+    float clip(float in)
+    {
+        return in < -1.f ? -1.f : in > 1.f ? 1.f : in;
+    }
 }

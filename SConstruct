@@ -7,3 +7,4 @@ if int(debug):
 else:
     env.Append(CXXFLAGS = ' -O3')
 env.Program(('pedal.cpp', 'audioobject.cpp'))
+Default('pedal')
