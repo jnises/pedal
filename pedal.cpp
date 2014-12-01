@@ -3,6 +3,7 @@
 #include "audioobject.hpp"
 #include <cmath>
 #include "effects.hpp"
+#include "drone.hpp"
 
 using namespace deepness;
 using namespace std;
@@ -40,7 +41,8 @@ int main(int argc, char *argv[])
     //auto effect = &passthrough;
     //auto effect = &fuzz;
     //auto effect = Delay(sampleRate);
-    auto effect = combine(Delay(sampleRate), &fuzz, &passthrough);
+    //auto effect = combine(Delay(sampleRate), &fuzz, &passthrough);
+    auto effect = Drone(sampleRate);
     AudioObject audio(iterate(effect), sampleRate);
     std::cerr << "Press any key to stop" << std::endl;
     std::cin.get();
