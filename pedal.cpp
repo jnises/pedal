@@ -5,6 +5,7 @@
 #include "effects.hpp"
 #include "drone.hpp"
 #include <iomanip>
+#include <unistd.h>
 
 using namespace deepness;
 using namespace std;
@@ -62,8 +63,10 @@ int main(int argc, char *argv[])
     //auto effect = Delay(sampleRate);
     //auto effect = combine(Delay(sampleRate), &fuzz, &passthrough);
     auto effect = combine(Drone(sampleRate), Compress(5.f), &clip);
-    AudioObject audio(printAverageVolume(iterate(effect)), sampleRate);
-    std::cerr << "Press any key to stop" << std::endl;
-    std::cin.get();
+    //AudioObject audio(printAverageVolume(iterate(effect)), sampleRate);
+    AudioObject audio(iterate(effect), sampleRate);
+    // std::cerr << "Press any key to stop" << std::endl;
+    // std::cin.get();
+    while(true) sleep(1);
     return 0;
 }
