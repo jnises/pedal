@@ -47,7 +47,7 @@ namespace deepness
         constexpr static float m_inertia = 0.001f;
         constexpr static float m_dampening = 10.f;
         constexpr static float m_tune = 0.5f;
-        constexpr static std::size_t m_bufferLength = 3;
+        constexpr static std::size_t m_bufferLength = 16;
         constexpr static std::size_t m_outputPosition = 1;
     };
 }

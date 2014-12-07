@@ -6,6 +6,7 @@
 #include "drone.hpp"
 #include <iomanip>
 #include <unistd.h>
+#include "webserver.hpp"
 
 using namespace deepness;
 using namespace std;
@@ -65,6 +66,7 @@ int main(int argc, char *argv[])
     auto effect = combine(Drone(sampleRate), Compress(5.f), &clip);
     //AudioObject audio(printAverageVolume(iterate(effect)), sampleRate);
     AudioObject audio(iterate(effect), sampleRate);
+    Webserver server("http_root");
     // std::cerr << "Press any key to stop" << std::endl;
     // std::cin.get();
     while(true) sleep(1);
