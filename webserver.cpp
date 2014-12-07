@@ -20,7 +20,6 @@ namespace deepness
 {
     Webserver::Webserver(boost::filesystem::path document_root)
         : m_root(std::move(document_root))
-        , m_running(true)
     {
         using std::placeholders::_1;
         // Set logging settings
@@ -37,7 +36,7 @@ namespace deepness
 
     Webserver::~Webserver()
     {
-        m_running = false;
+        m_server.stop();
         m_thread.join();
     }
 

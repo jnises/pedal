@@ -19,6 +19,5 @@ namespace deepness
         boost::filesystem::path m_root;
         Server m_server;
         std::thread m_thread;
-        std::atomic<bool> m_running;
     };
 }
