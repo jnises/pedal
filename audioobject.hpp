@@ -4,6 +4,7 @@
 #include <portaudio.h>
 #include <string>
 #include <functional>
+#include <vector>
 
 namespace deepness
 {
@@ -24,8 +25,10 @@ namespace deepness
             std::string m_message;
         };
         using CallbackFunc = std::function<void (const float *inputBuffer, float *outputBuffer, unsigned long numSamples)>;
+        using InputOverrideFunc = std::function<void (const float *buffer, unsigned long numSamples)>;
 
-        AudioObject(CallbackFunc, double sampleRate = 48000);
+        /*! if inputOverride is specified it is used in place of actual microphone input. */
+        AudioObject(CallbackFunc, double sampleRate = 48000, InputOverrideFunc inputOverride = nullptr);
         ~AudioObject();
         AudioObject(AudioObject const&) =delete;
         AudioObject & operator=(AudioObject const&) =delete;
@@ -37,10 +40,10 @@ namespace deepness
                                const PaStreamCallbackTimeInfo* timeInfo,
                                PaStreamCallbackFlags statusFlags,
                                void *userData);
-
+        static constexpr unsigned long s_bufferSampleLength = 64;
         PaStream *m_stream;
         CallbackFunc m_callback;
-
-        static constexpr unsigned long s_bufferSampleLength = 64;
+        InputOverrideFunc m_inputOverride;
+        std::vector<float> m_inputOverrideBuffer;
     };
 }

@@ -2,10 +2,13 @@
 
 namespace deepness
 {
-    AudioObject::AudioObject(CallbackFunc func, double sampleRate)
+    AudioObject::AudioObject(CallbackFunc func, double sampleRate, InputOverrideFunc inputOverride)
         :m_stream(nullptr)
         ,m_callback(std::move(func))
+        ,m_inputOverride(std::move(inputOverride))
     {
+        if(m_inputOverride)
+            m_inputOverrideBuffer.resize(s_bufferSampleLength, 0.f);
         auto err = Pa_Initialize();
         if(paNoError != err)
             throw Exception(std::string("Error initializing port audio: ") + Pa_GetErrorText(err));
@@ -27,7 +30,8 @@ namespace deepness
         outputParameters.sampleFormat = paFloat32;
         outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
         err = Pa_OpenStream(&m_stream,
-                            &inputParameters,
+                            // no input if we are overriding it
+                            m_inputOverride ? nullptr : &inputParameters,
                             &outputParameters,
                             sampleRate,
                             s_bufferSampleLength,
@@ -60,7 +64,9 @@ namespace deepness
                                  void *userData)
     {
         auto *audioobject = static_cast<AudioObject *>(userData);
-        audioobject->m_callback(static_cast<const float *>(inputBuffer),
+        if(audioobject->m_inputOverride)
+            audioobject->m_inputOverride(audioobject->m_inputOverrideBuffer.data(), audioobject->m_inputOverrideBuffer.size());
+        audioobject->m_callback(audioobject->m_inputOverride ? audioobject->m_inputOverrideBuffer.data() : static_cast<const float *>(inputBuffer),
                                 static_cast<float *>(outputBuffer),
                                 framesPerBuffer);
         return paContinue;
