@@ -11,6 +11,7 @@ json11env = env.Clone()
 json11 = json11env.Library('json11', ('/'.join((json11root, 'json11.cpp')),))
 pedalenv = env.Clone()
 pedalenv.ParseConfig('pkg-config --cflags --libs portaudio-2.0')
+pedalenv.ParseConfig('pkg-config --cflags --libs sndfile')
 pedalenv.AppendUnique(LIBS = json11)
 pedalenv.AppendUnique(LIBS = ('boost_system', 'boost_filesystem', 'boost_program_options'))
 pedalsrc = (
