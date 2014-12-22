@@ -58,12 +58,13 @@ std::function<void (const float *, float *, unsigned long)> iterate(function<flo
 int main(int argc, char *argv[])
 {
     std::cerr << Pa_GetVersionText() << std::endl;
-    double sampleRate = 48000;
+    double sampleRate = 44100;
     //auto effect = &passthrough;
     //auto effect = &fuzz;
     //auto effect = Delay(sampleRate);
     //auto effect = combine(Delay(sampleRate), &fuzz, &passthrough);
-    auto effect = combine(Drone(sampleRate), Compress(5.f), &clip);
+    auto drone = Drone{sampleRate};
+    auto effect = combine(drone, Compress(5.f), &clip);
     //AudioObject audio(printAverageVolume(iterate(effect)), sampleRate);
     AudioObject audio(iterate(effect), sampleRate);
     Webserver server("http_root");

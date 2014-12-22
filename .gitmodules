@@ -1,3 +1,6 @@
 [submodule "external/websocketpp"]
 	path = external/websocketpp
 	url = https://github.com/zaphoyd/websocketpp.git
+[submodule "external/json11"]
+	path = external/json11
+	url = https://github.com/dropbox/json11.git
