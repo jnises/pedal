@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <unistd.h>
 #include "webserver.hpp"
+#include <boost/program_options.hpp>
 
 using namespace deepness;
 using namespace std;
@@ -57,6 +58,17 @@ std::function<void (const float *, float *, unsigned long)> iterate(function<flo
 
 int main(int argc, char *argv[])
 {
+    namespace po = boost::program_options;
+    po::options_description desc("Options:");
+    desc.add_options()
+        ("override-input", po::value<std::string>(), "A wavefile to use instead of microphone input");
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+    if(vm.count("override-input"))
+    {
+        // do something
+    }
     std::cerr << Pa_GetVersionText() << std::endl;
     double sampleRate = 44100;
     //auto effect = &passthrough;
