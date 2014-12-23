@@ -18,6 +18,7 @@ pedalsrc = (
     'pedal.cpp',
     'audioobject.cpp',
     'webserver.cpp',
+    'soundloop.cpp',
 )
 pedal = pedalenv.Program(pedalsrc)
 Default(pedal)

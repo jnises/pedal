@@ -1,6 +1,9 @@
 #pragma once
 
-struct SNDFILE;
+#include <string>
+#include <exception>
+
+typedef struct SNDFILE_tag SNDFILE;
 
 namespace deepness
 {
@@ -21,8 +24,11 @@ namespace deepness
             std::string m_message;
         };
 
-        SoundLoop(std::string const& filename);
-        ~SoundLoop();
+        SoundLoop() noexcept;
+        explicit SoundLoop(std::string const& filename);
+        SoundLoop(SoundLoop &&other) noexcept;
+        SoundLoop &operator=(SoundLoop &&other) noexcept;
+        ~SoundLoop() noexcept;
         SoundLoop(SoundLoop const&) = delete;
         SoundLoop &operator=(SoundLoop const&) = delete;
         void read(float *buffer, unsigned int samples);

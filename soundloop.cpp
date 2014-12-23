@@ -16,13 +16,29 @@ namespace deepness
             throw Exception("Non-seekable file");
     }
 
-    ~SoundLoop::SoundLoop()
+    SoundLoop::SoundLoop() noexcept
+    : m_handle(nullptr)
+    {}
+
+    SoundLoop::SoundLoop(SoundLoop &&other) noexcept
     {
-        sf_close(m_handle);
+        *this = std::move(other);
     }
 
-    SoundLoop::SoundLoop(SoundLoop const&) = delete;
-    SoundLoop &SoundLoop::operator=(SoundLoop const&) = delete;
+    SoundLoop &SoundLoop::operator=(SoundLoop &&other) noexcept
+    {
+        if(m_handle)
+            sf_close(m_handle);
+        m_handle = other.m_handle;
+        other.m_handle = nullptr;
+        return *this;
+    }
+
+    SoundLoop::~SoundLoop() noexcept
+    {
+        if(m_handle)
+            sf_close(m_handle);
+    }
 
     void SoundLoop::read(float *buffer, unsigned int samples)
     {

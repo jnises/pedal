@@ -76,6 +76,42 @@ std::function<void (const float *, float *, unsigned long)> chain(std::vector<st
     };
 }
 
+class SoundLoopTransform
+{
+public:
+    SoundLoopTransform(SoundLoop soundloop)
+        : m_soundLoop(std::move(soundloop))
+    {}
+
+    SoundLoopTransform() noexcept
+    {}
+
+    SoundLoopTransform(SoundLoopTransform &&other) noexcept
+        : m_soundLoop(std::move(other.m_soundLoop))
+    {}
+
+    SoundLoopTransform(const SoundLoopTransform &)
+    {
+        throw std::exception{};
+    }
+
+    ~SoundLoopTransform() noexcept
+    {}
+
+    SoundLoopTransform &operator=(SoundLoopTransform &&other) noexcept
+    {
+        m_soundLoop = std::move(other.m_soundLoop);
+        return *this;
+    }
+
+    void operator()(const float *, float *output, unsigned long samples)
+    {
+        m_soundLoop.read(output, samples);
+    }
+private:
+    SoundLoop m_soundLoop;
+};
+
 int main(int argc, char *argv[])
 {
     namespace po = boost::program_options;
@@ -85,11 +121,10 @@ int main(int argc, char *argv[])
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
+    std::vector<std::function<void (const float *, float *, unsigned long)>> transforms;
     if(vm.count("override-input"))
-    {
-        // do something
-    }
-    std::cerr << Pa_GetVersionText() << std::endl;
+        transforms.push_back(SoundLoopTransform{SoundLoop{vm["override-input"].as<std::string>()}});
+    std::cout << Pa_GetVersionText() << std::endl;
     double sampleRate = 44100;
     //auto effect = &passthrough;
     //auto effect = &fuzz;
@@ -97,8 +132,8 @@ int main(int argc, char *argv[])
     //auto effect = combine(Delay(sampleRate), &fuzz, &passthrough);
     auto drone = Drone{sampleRate};
     auto effect = combine(drone, Compress(5.f), &clip);
-    //AudioObject audio(printAverageVolume(iterate(effect)), sampleRate);
-    AudioObject audio(iterate(effect), sampleRate);
+    transforms.push_back(iterate(effect));
+    AudioObject audio(chain(std::move(transforms)), sampleRate);
     Webserver server("http_root");
     // std::cerr << "Press any key to stop" << std::endl;
     // std::cin.get();
