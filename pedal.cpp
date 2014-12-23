@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
     auto effect = combine(drone, Compress(5.f), &clip);
     transforms.push_back(iterate(effect));
     AudioObject audio(chain(std::move(transforms)), sampleRate);
-    //Webserver server("http_root");
+    Webserver server("http_root");
     // std::cerr << "Press any key to stop" << std::endl;
     // std::cin.get();
     while(true) sleep(1);

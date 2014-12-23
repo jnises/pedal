@@ -55,10 +55,10 @@ namespace deepness
             connection->set_status(http::status_code::not_found);
             return;
         }
-        if(!fs::exists(path))
+        if(!fs::is_regular_file(path))
         {
             auto indexpath = path / "index.html";
-            if(fs::exists(indexpath))
+            if(fs::is_directory(path) && fs::exists(indexpath))
             {
                 path = std::move(indexpath);
             }
