@@ -87,9 +87,10 @@ public:
         : m_soundLoop(std::move(other.m_soundLoop))
     {}
 
+    // needs to have a copy constructor to make std::function happy
     SoundLoopTransform(const SoundLoopTransform &)
     {
-        throw std::exception{};
+        std::terminate();
     }
 
     void operator()(const float *, float *output, unsigned long samples)
@@ -103,12 +104,18 @@ private:
 int main(int argc, char *argv[])
 {
     namespace po = boost::program_options;
-    po::options_description desc("Options:");
+    po::options_description desc("Options");
     desc.add_options()
+        ("help", "help")
         ("override-input", po::value<std::string>(), "A wavefile to use instead of microphone input");
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
+    if(vm.count("help"))
+    {
+        std::cout << desc << std::endl;
+        return 1;
+    }
     std::vector<std::function<void (const float *, float *, unsigned long)>> transforms;
     if(vm.count("override-input"))
         transforms.push_back(SoundLoopTransform{SoundLoop{vm["override-input"].as<std::string>()}});
@@ -122,7 +129,7 @@ int main(int argc, char *argv[])
     auto effect = combine(drone, Compress(5.f), &clip);
     transforms.push_back(iterate(effect));
     AudioObject audio(chain(std::move(transforms)), sampleRate);
-    Webserver server("http_root");
+    //Webserver server("http_root");
     // std::cerr << "Press any key to stop" << std::endl;
     // std::cin.get();
     while(true) sleep(1);

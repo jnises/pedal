@@ -21,6 +21,7 @@ namespace deepness
     {}
 
     SoundLoop::SoundLoop(SoundLoop &&other) noexcept
+    : m_handle(nullptr)
     {
         *this = std::move(other);
     }
