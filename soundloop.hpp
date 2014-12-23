@@ -24,6 +24,7 @@ namespace deepness
             std::string m_message;
         };
 
+        // TODO handle resampling to the correct samplerate
         SoundLoop() noexcept;
         explicit SoundLoop(std::string const& filename);
         SoundLoop(SoundLoop &&other) noexcept;

@@ -30,12 +30,12 @@ float volume(const float *in, unsigned long samples)
     return sqrt(volume / static_cast<float>(samples));
 }
 
-std::function<void (const float *, float *, unsigned long)> printVolume(std::function<void (const float *in, float *out, unsigned long samples)> func)
+std::function<void (const float *, float *, unsigned long)> calculateVolume(std::function<void (float volume)> savefunc)
 {
-    return [func](const float *in, float *out, unsigned long samples)
+    return [savefunc = std::move(savefunc)](const float *in, float *out, unsigned long samples)
     {
-        func(in, out, samples);
-        cout << setw(4) << fixed << volume(out, samples) << "\r";
+        std::copy_n(in, samples, out);
+        savefunc(volume(out, samples));
     };
 }
 
@@ -72,6 +72,7 @@ std::function<void (const float *, float *, unsigned long)> chain(std::vector<st
         {
             auto next = (current + 1) % 2;
             (*it)(buffers[next], buffers[current], samples);
+            current = next;
         }
     };
 }
@@ -119,17 +120,24 @@ int main(int argc, char *argv[])
     std::vector<std::function<void (const float *, float *, unsigned long)>> transforms;
     if(vm.count("override-input"))
         transforms.push_back(SoundLoopTransform{SoundLoop{vm["override-input"].as<std::string>()}});
-    std::cout << Pa_GetVersionText() << std::endl;
     double sampleRate = 44100;
     //auto effect = &passthrough;
     //auto effect = &fuzz;
     //auto effect = Delay(sampleRate);
     //auto effect = combine(Delay(sampleRate), &fuzz, &passthrough);
-    auto drone = Drone{sampleRate};
-    auto effect = combine(drone, Compress(5.f), &clip);
+    //auto drone = Drone{sampleRate};
+    //auto effect = combine(drone, Compress(5.f), &clip);
+    auto effect = combine(Compress(2.f), &clip);
     transforms.push_back(iterate(effect));
+    std::atomic<float> volume(0.f);
+    transforms.push_back(calculateVolume([&volume](float arg) {
+                volume = arg;
+            }));
     AudioObject audio(chain(std::move(transforms)), sampleRate);
     Webserver server("http_root");
+    server.handleMessage("getoutvolume", [&volume](json11::Json const& args, Webserver::SendFunc send) {
+            send(json11::Json(volume).dump());
+        });
     // std::cerr << "Press any key to stop" << std::endl;
     // std::cin.get();
     while(true) sleep(1);
