@@ -25,8 +25,8 @@ namespace deepness
         using std::placeholders::_1;
         using std::placeholders::_2;
         // logging settings
-        m_server.set_access_channels(websocketpp::log::alevel::all);
-        m_server.clear_access_channels(websocketpp::log::alevel::frame_payload);
+        //m_server.set_access_channels(websocketpp::log::alevel::all);
+        //m_server.clear_access_channels(websocketpp::log::alevel::frame_payload);
         m_server.init_asio();
         m_server.set_reuse_addr(true);
         m_server.set_http_handler(std::bind(&Webserver::handleHttp, this, _1));
@@ -84,11 +84,15 @@ namespace deepness
         using namespace json11;
         std::string error;
         auto doc = Json::parse(msg->get_payload().c_str(), error);
-        assert(!doc.is_null());
+        if(doc.is_null())
+        {
+            std::cerr << "bad message received: " << msg->get_payload() << std::endl;
+            return;
+        }
         auto const& cmd = doc["cmd"];
         if(!cmd.is_string())
         {
-            std::cerr << "Bad message received: " << msg->get_payload();
+            std::cerr << "Bad message received: " << msg->get_payload() << std::endl;
             return;
         }
         CommandHandler handler;
@@ -97,7 +101,7 @@ namespace deepness
             auto it = m_commands.find(cmd.string_value());
             if(it == m_commands.end())
             {
-                std::cerr << "Unexpected command received: " << cmd.string_value();
+                std::cerr << "Unexpected command received: " << cmd.string_value() << std::endl;
                 return;
             }
             handler = it->second;
@@ -107,13 +111,13 @@ namespace deepness
                 auto connection = m_server.get_con_from_hdl(handle, ec);
                 if(ec || !connection)
                 {
-                    std::cerr << "Error sending message: " << ec.message();
+                    std::cerr << "Error sending message: " << ec.message() << std::endl;
                     return false;
                 }
                 ec = connection->send(message);
                 if(ec)
                 {
-                    std::cerr << "Error sending message: " << ec.message();
+                    std::cerr << "Error sending message: " << ec.message() << std::endl;
                     return false;
                 }
                 return true;

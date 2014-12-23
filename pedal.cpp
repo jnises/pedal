@@ -138,8 +138,8 @@ int main(int argc, char *argv[])
     server.handleMessage("getoutvolume", [&volume](json11::Json const& args, Webserver::SendFunc send) {
             send(json11::Json(volume).dump());
         });
-    // std::cerr << "Press any key to stop" << std::endl;
-    // std::cin.get();
-    while(true) sleep(1);
+    std::cerr << "Press any key to stop" << std::endl;
+    std::cin.get();
+    //while(true) sleep(1);
     return 0;
 }
