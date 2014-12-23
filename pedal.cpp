@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include "webserver.hpp"
 #include <boost/program_options.hpp>
-#include <sndfile.h>
+#include "soundloop.hpp"
 
 using namespace deepness;
 using namespace std;
@@ -57,62 +57,24 @@ std::function<void (const float *, float *, unsigned long)> iterate(function<flo
     };
 }
 
-class SoundLoop
+std::function<void (const float *, float *, unsigned long)> chain(std::vector<std::function<void (const float *, float *, unsigned long)>> transforms)
 {
-public:
-    class Exception: public std::exception
+    return [transforms = std::move(transforms), buffer = std::vector<float>()](const float * input, float * output, unsigned long samples) mutable
     {
-    public:
-        Exception(std::string message)
-            : m_message(std::move(message))
-        {}
-        const char* what() const noexcept override
+        if(transforms.empty())
+            return;
+        buffer.resize(samples);
+        float *buffers[2] = {buffer.data(), output};
+        size_t current = transforms.size() % 2;
+        transforms.front()(input, buffers[current], samples);
+        current = (current + 1) % 2;
+        for(auto it = ++transforms.begin(); it != transforms.end(); ++it)
         {
-            return m_message.c_str();
+            auto next = (current + 1) % 2;
+            (*it)(buffers[next], buffers[current], samples);
         }
-    private:
-        std::string m_message;
     };
-    
-    SoundLoop(std::string const& filename)
-        : m_handle(nullptr)
-    {
-        SF_INFO info = {0};
-        m_handle = sf_open(filename.c_str(), SFM_READ, &info);
-        if(!m_handle)
-            throw Exception(sf_strerror(nullptr));
-        if(info.channels != 1)
-            throw Exception("Non-mono file");
-        if(!info.seekable)
-            throw Exception("Non-seekable file");
-    }
-
-    ~SoundLoop()
-    {
-        sf_close(m_handle);
-    }
-
-    SoundLoop(SoundLoop const&) = delete;
-    SoundLoop &operator=(SoundLoop const&) = delete;
-
-    void read(float *buffer, unsigned int samples)
-    {
-        while(samples)
-        {
-            auto count = sf_read_float(m_handle, buffer, samples);
-            buffer += count;
-            samples -= count;
-            if(samples > 0)
-            {
-                auto result = sf_seek(m_handle, 0, SEEK_SET);
-                if(result < 0)
-                    throw Exception("Error seeking in file");
-            }
-        }
-    }
-private:
-    SNDFILE *m_handle;
-};
+}
 
 int main(int argc, char *argv[])
 {
