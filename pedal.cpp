@@ -83,9 +83,6 @@ public:
         : m_soundLoop(std::move(soundloop))
     {}
 
-    SoundLoopTransform() noexcept
-    {}
-
     SoundLoopTransform(SoundLoopTransform &&other) noexcept
         : m_soundLoop(std::move(other.m_soundLoop))
     {}
@@ -93,15 +90,6 @@ public:
     SoundLoopTransform(const SoundLoopTransform &)
     {
         throw std::exception{};
-    }
-
-    ~SoundLoopTransform() noexcept
-    {}
-
-    SoundLoopTransform &operator=(SoundLoopTransform &&other) noexcept
-    {
-        m_soundLoop = std::move(other.m_soundLoop);
-        return *this;
     }
 
     void operator()(const float *, float *output, unsigned long samples)
