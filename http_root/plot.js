@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     var plot = document.getElementById('plot');
     var c = plot.getContext('2d');
-    var socket = new WebSocket("ws://" + location.host + "/asdf");
+    var socket = new WebSocket("ws://" + location.host + "/commands");
     var currentVolume = 0.;
     var position = 0;
     socket.onmessage = function(event) {

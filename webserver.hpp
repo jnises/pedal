@@ -17,11 +17,13 @@ namespace deepness
         /*! \returns false if you should stop sending stuff to this socket. */
         using SendFunc = std::function<bool (std::string const&)>;
         using CommandHandler = std::function<void (json11::Json const& args, SendFunc)>;
+        // TODO handle specific resources
         void handleMessage(std::string command, CommandHandler handler);
     private:
         using Server = websocketpp::server<websocketpp::config::asio>;
         void handleHttp(websocketpp::connection_hdl);
         void handleReceivedMessage(websocketpp::connection_hdl, Server::message_ptr msg);
+        void handleOpen(websocketpp::connection_hdl);
 
         boost::filesystem::path m_root;
         Server m_server;

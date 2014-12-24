@@ -37,13 +37,12 @@ namespace deepness
         : m_root(std::move(document_root))
     {
         using std::placeholders::_1;
-        using std::placeholders::_2;
         // disable logging
         m_server.clear_access_channels(websocketpp::log::alevel::all);
         m_server.init_asio();
         m_server.set_reuse_addr(true);
         m_server.set_http_handler(std::bind(&Webserver::handleHttp, this, _1));
-        m_server.set_message_handler(std::bind(&Webserver::handleReceivedMessage, this, _1, _2));
+        m_server.set_open_handler(std::bind(&Webserver::handleOpen, this, _1));
         m_server.listen(8080);
         m_server.start_accept();
         m_thread = std::thread([this] {
@@ -55,6 +54,16 @@ namespace deepness
     {
         m_server.stop();
         m_thread.join();
+    }
+
+    void Webserver::handleOpen(websocketpp::connection_hdl handle)
+    {
+        using std::placeholders::_1;
+        using std::placeholders::_2;
+        auto connection = m_server.get_con_from_hdl(handle);
+        if(connection->get_resource() != "/commands")
+            return;
+        connection->set_message_handler(std::bind(&Webserver::handleReceivedMessage, this, _1, _2));
     }
 
     void Webserver::handleHttp(websocketpp::connection_hdl handle)
