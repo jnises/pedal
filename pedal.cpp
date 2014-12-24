@@ -136,7 +136,11 @@ int main(int argc, char *argv[])
     AudioObject audio(chain(std::move(transforms)), sampleRate);
     Webserver server("http_root");
     server.handleMessage("getoutvolume", [&volume](json11::Json const& args, Webserver::SendFunc send) {
-            send(json11::Json(volume).dump());
+            json11::Json message = json11::Json::object {
+                {"cmd", "outvolume"},
+                {"args", volume.load()},
+            };
+            send(message.dump());
         });
     std::cerr << "Press any key to stop" << std::endl;
     std::cin.get();

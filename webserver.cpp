@@ -4,6 +4,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <json11.hpp>
+#include <boost/optional.hpp>
 
 namespace fs = boost::filesystem;
 
@@ -15,6 +16,19 @@ namespace
         auto absoluteroot = fs::absolute(root);
         return boost::starts_with(absolutepath.string(), absoluteroot.string());
     }
+
+    boost::optional<std::string> getMimeType(const std::string &extension)
+    {
+        // threadsafe because modern c++
+        const static std::unordered_map<std::string, std::string> types {
+            {".html", "text/html"},
+            {".js", "application/javascript"},
+        };
+        auto it = types.find(extension);
+        if(it != types.end())
+            return it->second;
+        return boost::none;
+    }
 }
 
 namespace deepness
@@ -24,9 +38,8 @@ namespace deepness
     {
         using std::placeholders::_1;
         using std::placeholders::_2;
-        // logging settings
-        //m_server.set_access_channels(websocketpp::log::alevel::all);
-        //m_server.clear_access_channels(websocketpp::log::alevel::frame_payload);
+        // disable logging
+        m_server.clear_access_channels(websocketpp::log::alevel::all);
         m_server.init_asio();
         m_server.set_reuse_addr(true);
         m_server.set_http_handler(std::bind(&Webserver::handleHttp, this, _1));
@@ -76,6 +89,9 @@ namespace deepness
         data.assign(istreambuf_iterator<char>(s),
                     istreambuf_iterator<char>());
         connection->set_status(http::status_code::ok);
+        auto mime = getMimeType(path.extension().string());
+        if(mime)
+            connection->append_header("Content-Type", *mime);
         connection->set_body(move(data));
     }
 
