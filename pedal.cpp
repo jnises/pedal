@@ -13,6 +13,9 @@
 using namespace deepness;
 using namespace std;
 
+using SoundTransform = std::function<void (const float*, float *, unsigned long samples)>;
+using CombineFunc = std::function<void (const float* in0, const float* in1, float *out, unsigned long samples)>;
+
 float average(const float *in, unsigned long samples)
 {
     auto average = 0.f;
@@ -102,6 +105,113 @@ private:
     SoundLoop m_soundLoop;
 };
 
+void linearResample(const float *in, unsigned long inSamples, float *out, unsigned long outSamples)
+{
+    for(unsigned long i = 0; i < outSamples; ++i)
+    {
+        auto pos = i / static_cast<double>(outSamples) * inSamples;
+        auto pos0 = static_cast<unsigned long>(pos);
+        auto val0 = in[std::min(pos0, inSamples - 1)];
+        auto val1 = in[std::min(static_cast<unsigned long>(pos + 1.), inSamples - 1)];
+        auto mix = static_cast<float>(pos - pos0);
+        out[i] = val1 * mix + val0 * (1.f - mix);
+    }
+}
+
+/*! make the sample half as long. */
+void boxResample(const float *in, unsigned long inSamples, float *out, unsigned long outSamples)
+{
+    assert(inSamples == 2 * outSamples);
+    for(decltype(outSamples) i = 0; i < outSamples; ++i)
+        out[i] = 0.5f * (in[i * 2] + in[i * 2 + 1]);
+}
+
+class OctaveDown
+{
+public:
+    void operator()(const float *in, float * out, unsigned long samples)
+    {
+        linearResample(in, samples / 2, out, samples);
+    }
+};
+
+class OctaveUp
+{
+public:
+    void operator()(const float *in, float * out, unsigned long samples)
+    {
+        boxResample(in, samples, out, samples / 2);
+        boxResample(in, samples, out + samples / 2, samples / 2);
+        auto val0 = out[samples / 2];
+        auto val1 = out[samples / 2 + 1];
+        out[samples / 2] = 2 / 3.f * val0 + 1 / 3.f * val1;
+        out[samples / 2 + 1] = 1 / 3.f * val0 + 2 / 3.f * val1;
+    }
+};
+
+class SplitCombine
+{
+public:
+    SplitCombine(SoundTransform path0, SoundTransform path1, CombineFunc combiner)
+        : m_path0(std::move(path0))
+        , m_path1(std::move(path1))
+        , m_combiner(std::move(combiner))
+    {}
+
+    void operator()(const float *in, float *out, unsigned long samples)
+    {
+        m_buffer0.resize(samples);
+        m_buffer1.resize(samples);
+        m_path0(in, m_buffer0.data(), samples);
+        m_path1(in, m_buffer1.data(), samples);
+        m_combiner(m_buffer0.data(), m_buffer1.data(), out, samples);
+    }
+
+private:
+    SoundTransform m_path0;
+    SoundTransform m_path1;
+    CombineFunc m_combiner;
+    std::vector<float> m_buffer0;
+    std::vector<float> m_buffer1;
+};
+
+class Mixer
+{
+public:
+    Mixer(float mix)
+        : m_mix(mix)
+    {}
+
+    void operator()(const float* in0, const float* in1, float *out, unsigned long samples)
+    {
+        for(decltype(samples) i = 0; i < samples; ++i)
+            out[i] = in1[i] * m_mix + in0[i] * (1.f - m_mix);
+    }
+private:
+    float m_mix;
+};
+
+class WetDryMix
+{
+public:
+    /*! \param combiner  first input: dry, second input: wet */
+    WetDryMix(SoundTransform func, CombineFunc combiner)
+        : m_func(std::move(func))
+        , m_combiner(std::move(combiner))
+    {}
+
+    void operator()(const float *in, float *out, unsigned long samples)
+    {
+        m_buffer.resize(samples);
+        m_func(in, m_buffer.data(), samples);
+        m_combiner(in, m_buffer.data(), out, samples);
+    }
+private:
+    SoundTransform m_func;
+    CombineFunc m_combiner;
+    std::vector<float> m_buffer;
+};
+
 int main(int argc, char *argv[])
 {
     namespace po = boost::program_options;
@@ -127,8 +237,10 @@ int main(int argc, char *argv[])
     //auto effect = combine(Delay(sampleRate), &fuzz, &passthrough);
     //auto drone = Drone{sampleRate};
     //auto effect = combine(drone, Compress(5.f), &clip);
-    auto effect = combine(Compress(2.f), &clip);
-    transforms.push_back(iterate(effect));
+    //transforms.push_back(WetDryMix(OctaveDown(), Mixer(0.5f)));
+    transforms.push_back(WetDryMix(OctaveUp(), Mixer(0.5f)));
+    // auto effect = combine(Compress(2.f), &clip);
+    // transforms.push_back(iterate(effect));
     std::atomic<float> volume(0.f);
     transforms.push_back(calculateVolume([&volume](float arg) {
                 volume = arg;
