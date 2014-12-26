@@ -10,6 +10,8 @@
     "tests"
   ],
   "dependencies": {
-    "polymer": "Polymer/polymer#~0.5.2"
+    "polymer": "Polymer/polymer#~0.5.2",
+    "q": "1.0.1",
+    "underscore": "~1.7.0"
   }
 }

@@ -242,10 +242,10 @@ int main(int argc, char *argv[])
     //auto effect = combine(Delay(sampleRate), &fuzz, &passthrough);
     //auto drone = Drone{sampleRate};
     //auto effect = combine(drone, Compress(5.f), &clip);
-    //transforms.push_back(WetDryMix(OctaveDown(), Mixer(0.5f)));
-    transforms.push_back(WetDryMix(OctaveUp(), Mixer(0.5f)));
-    // auto effect = combine(Compress(2.f), &clip);
-    // transforms.push_back(iterate(effect));
+    transforms.push_back(WetDryMix(OctaveDown(), Mixer(0.5f)));
+    //transforms.push_back(WetDryMix(OctaveUp(), Mixer(0.5f)));
+    auto effect = combine(Compress(1.5f), &clip);
+    transforms.push_back(iterate(effect));
     std::atomic<float> volume(0.f);
     transforms.push_back(calculateVolume([&volume](float arg) {
                 volume = arg;
@@ -263,13 +263,13 @@ int main(int argc, char *argv[])
     server.handleMessage("getdynamicparameters", [](Json const& args, Webserver::SendFunc send) {
             auto &id = args["id"];
             auto outargs = Json::object {
-                {"vars", Json::array { "testvar", "wetdrymix" }}
+                {"params", Json::array { "testvar", "wetdrymix" }}
             };
             if(!id.is_null())
                 outargs.insert(std::make_pair("id", id));
             auto message = Json{Json::object {
                     {"cmd", "dynamicparameters"},
-                    {"args", Json(args)},
+                    {"args", Json(outargs)},
                 }};
             send(message.dump());
         });
