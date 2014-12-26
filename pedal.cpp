@@ -188,7 +188,7 @@ public:
 
     void operator()(const float* in0, const float* in1, float *out, unsigned long samples)
     {
-        auto mix = m_mix();
+        auto mix = std::min(1.f, std::max(0.f, m_mix()));
         for(decltype(samples) i = 0; i < samples; ++i)
             out[i] = in1[i] * mix + in0[i] * (1.f - mix);
     }
@@ -216,8 +216,6 @@ private:
     CombineFunc m_combiner;
     std::vector<float> m_buffer;
 };
-
-
 
 int main(int argc, char *argv[])
 {
@@ -254,11 +252,25 @@ int main(int argc, char *argv[])
             }));
     AudioObject audio(chain(std::move(transforms)), sampleRate);
     Webserver server("http_root");
-    server.handleMessage("getoutvolume", [&volume](json11::Json const& args, Webserver::SendFunc send) {
-            json11::Json message = json11::Json::object {
+    using namespace json11;
+    server.handleMessage("getoutvolume", [&volume](Json const& args, Webserver::SendFunc send) {
+            Json message = Json::object {
                 {"cmd", "outvolume"},
                 {"args", volume.load()},
             };
+            send(message.dump());
+        });
+    server.handleMessage("getdynamicparameters", [](Json const& args, Webserver::SendFunc send) {
+            auto &id = args["id"];
+            auto outargs = Json::object {
+                {"vars", Json::array { "testvar", "wetdrymix" }}
+            };
+            if(!id.is_null())
+                outargs.insert(std::make_pair("id", id));
+            auto message = Json{Json::object {
+                    {"cmd", "dynamicparameters"},
+                    {"args", Json(args)},
+                }};
             send(message.dump());
         });
     std::cerr << "Press any key to stop" << std::endl;
