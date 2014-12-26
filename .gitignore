@@ -4,3 +4,5 @@
 .sconsign.dblite
 *.a
 pedal
+http_root/components
+node_modules
