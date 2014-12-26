@@ -178,17 +178,22 @@ private:
 class Mixer
 {
 public:
+    using MixFunc = std::function<float ()>;
+    Mixer(MixFunc func)
+        : m_mix(func)
+    {}
     Mixer(float mix)
-        : m_mix(mix)
+        : m_mix([mix] { return mix; })
     {}
 
     void operator()(const float* in0, const float* in1, float *out, unsigned long samples)
     {
+        auto mix = m_mix();
         for(decltype(samples) i = 0; i < samples; ++i)
-            out[i] = in1[i] * m_mix + in0[i] * (1.f - m_mix);
+            out[i] = in1[i] * mix + in0[i] * (1.f - mix);
     }
 private:
-    float m_mix;
+    MixFunc m_mix;
 };
 
 class WetDryMix
@@ -211,6 +216,8 @@ private:
     CombineFunc m_combiner;
     std::vector<float> m_buffer;
 };
+
+
 
 int main(int argc, char *argv[])
 {
