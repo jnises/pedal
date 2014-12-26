@@ -142,6 +142,9 @@ public:
     {
         boxResample(in, samples, out, samples / 2);
         boxResample(in, samples, out + samples / 2, samples / 2);
+        // flip the phase, just for fun
+        for(decltype(samples) i = samples / 2; i < samples; ++i)
+            out[i] = -out[i];
         auto val0 = out[samples / 2];
         auto val1 = out[samples / 2 + 1];
         out[samples / 2] = 2 / 3.f * val0 + 1 / 3.f * val1;
@@ -242,8 +245,8 @@ int main(int argc, char *argv[])
     //auto effect = combine(Delay(sampleRate), &fuzz, &passthrough);
     //auto drone = Drone{sampleRate};
     //auto effect = combine(drone, Compress(5.f), &clip);
-    transforms.push_back(WetDryMix(OctaveDown(), Mixer(0.5f)));
-    //transforms.push_back(WetDryMix(OctaveUp(), Mixer(0.5f)));
+    //transforms.push_back(WetDryMix(OctaveDown(), Mixer(0.5f)));
+    transforms.push_back(WetDryMix(OctaveUp(), Mixer(0.5f)));
     auto effect = combine(Compress(1.5f), &clip);
     transforms.push_back(iterate(effect));
     std::atomic<float> volume(0.f);
