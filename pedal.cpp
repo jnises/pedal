@@ -53,7 +53,7 @@ std::function<void (const float *, float *, unsigned long)> printAverageVolume(s
 
 std::function<void (const float *, float *, unsigned long)> iterate(function<float (float in)> func)
 {
-    return [func](const float *in, float *out, unsigned long samples)
+    return [func = std::move(func)](const float *in, float *out, unsigned long samples)
     {
         for(size_t i = 0; i < samples; ++i)
             out[i] = func(in[i]);
@@ -152,6 +152,23 @@ public:
     }
 };
 
+// make sure you put a hipass after this
+SoundTransform AbsOctaveUp()
+{
+    return iterate([](float in) {
+            return fabs(in);
+        });
+}
+
+SoundTransform HiPass(double sampleRate, float amount)
+{
+    return iterate([sampleRate, amount, accumulation = 0.f](float in) mutable {
+            auto adjustedAmount = static_cast<float>(amount / sampleRate);
+            accumulation = in * adjustedAmount + (1.f - adjustedAmount) * accumulation;
+            return in - accumulation;
+        });
+}
+
 class SplitCombine
 {
 public:
@@ -246,7 +263,8 @@ int main(int argc, char *argv[])
     //auto drone = Drone{sampleRate};
     //auto effect = combine(drone, Compress(5.f), &clip);
     //transforms.push_back(WetDryMix(OctaveDown(), Mixer(0.5f)));
-    transforms.push_back(WetDryMix(OctaveUp(), Mixer(0.5f)));
+    //transforms.push_back(WetDryMix(OctaveUp(), Mixer(0.5f)));
+    transforms.push_back(WetDryMix(chain({AbsOctaveUp(), HiPass(sampleRate, 1000.f)}), Mixer(0.5f)));
     auto effect = combine(Compress(1.5f), &clip);
     transforms.push_back(iterate(effect));
     std::atomic<float> volume(0.f);
