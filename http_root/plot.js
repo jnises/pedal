@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
         hilowctx.fillStyle = 'black';
         var clampedHi = Math.min(1., Math.max(-1., currentHi));
         var clampedLow = Math.min(1., Math.max(-1., currentLow));
-        hilowctx.fillRect(hilowposition, (1. - clampedHi) * hilowplot.height / 2, 1, (clampedHi - clampedLow) * hilowplot.height / 2);
+        hilowctx.fillRect(hilowposition, (1. - clampedHi) * hilowplot.height / 2, 1, Math.max(1., (clampedHi - clampedLow) * hilowplot.height / 2));
         hilowctx.fillStyle = 'red';
         hilowctx.fillRect(hilowposition, hilowplot.height / 2, 1, 1);
         hilowposition = (hilowposition + 1) % hilowplot.width;

@@ -288,7 +288,7 @@ int main(int argc, char *argv[])
     //auto effect = combine(Delay(sampleRate), &fuzz, &passthrough);
     //auto drone = Drone{sampleRate};
     //auto effect = combine(drone, Compress(5.f), &clip);
-    //transforms.push_back(WetDryMix(OctaveDown(), Mixer(0.5f)));
+    transforms.push_back(WetDryMix(OctaveDown(), Mixer(0.5f)));
     //transforms.push_back(WetDryMix(OctaveUp(), Mixer(0.5f)));
     transforms.push_back(WetDryMix(chain({AbsOctaveUp(), HiPass(sampleRate, 1000.f), AbsOctaveUp(), HiPass(sampleRate, 1000.f)}), Mixer(.5f)));
     //auto effect = combine(Compress(1.5f), &clip);
