@@ -1,9 +1,14 @@
 document.addEventListener('DOMContentLoaded', function() {
-    var plot = document.getElementById('plot');
-    var c = plot.getContext('2d');
+    var volumeplot = document.getElementById('volumeplot');
+    var volumectx = volumeplot.getContext('2d');
+    var hilowplot = document.getElementById('hilowplot');
+    var hilowctx = hilowplot.getContext('2d');
     var socket = new WebSocket("ws://" + location.host + "/commands");
     var currentVolume = 0.;
-    var position = 0;
+    var currentHi = 0.;
+    var currentLow = 0.;
+    var volumeposition = 0;
+    var hilowposition = 0;
     var dynamicparameterdeferreds = {};
     var nextMessageId = 0;
     var messageReplyTimeout = 10000;
@@ -16,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var data = JSON.parse(event.data);
         if(data.cmd === "outvolume") {
             currentVolume = data.args;
-        } else if(data.cmd == "dynamicparameters") {
+        } else if(data.cmd === "dynamicparameters") {
             var id = data.args.id;
             var deferred = dynamicparameterdeferreds[id];
             if(deferred === undefined) {
@@ -25,16 +30,33 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             delete dynamicparameterdeferreds[id];
             deferred.deferred.resolve(data.args);
-        }
+        } else if(data.cmd === "outhilow") {
+            currentHi = data.args[0];
+            currentLow = data.args[1];
+        } else {
+            console.log('unknown message %s received', data.cmd);
+        }        
     };
     function draw() {
-        if(socket.readyState === WebSocket.OPEN)
+        if(socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({'cmd': 'getoutvolume'}));
-        c.clearRect(position, 0, 1, plot.height);
-        c.fillStyle = 'black';
-        var lineHeight = Math.min(currentVolume, 1) * plot.height;
-        c.fillRect(position, plot.height - lineHeight, 1, lineHeight);
-        position = (position + 1) % plot.width;
+            socket.send(JSON.stringify({'cmd': 'getouthilow'}));
+        }
+        volumectx.clearRect(volumeposition, 0, 1, volumeplot.height);
+        volumectx.fillStyle = 'black';
+        var lineHeight = Math.min(currentVolume, 1) * volumeplot.height;
+        volumectx.fillRect(volumeposition, volumeplot.height - lineHeight, 1, lineHeight);
+        volumeposition = (volumeposition + 1) % volumeplot.width;
+
+        hilowctx.clearRect(hilowposition, 0, 1, hilowplot.height);
+        hilowctx.fillStyle = 'black';
+        var clampedHi = Math.min(1., Math.max(-1., currentHi));
+        var clampedLow = Math.min(1., Math.max(-1., currentLow));
+        hilowctx.fillRect(hilowposition, (1. - clampedHi) * hilowplot.height / 2, 1, (clampedHi - clampedLow) * hilowplot.height / 2);
+        hilowctx.fillStyle = 'red';
+        hilowctx.fillRect(hilowposition, hilowplot.height / 2, 1, 1);
+        hilowposition = (hilowposition + 1) % hilowplot.width;
+
         window.requestAnimationFrame(draw);
     }
     draw();

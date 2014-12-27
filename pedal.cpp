@@ -33,12 +33,27 @@ float volume(const float *in, unsigned long samples)
     return sqrt(volume / static_cast<float>(samples));
 }
 
-std::function<void (const float *, float *, unsigned long)> calculateVolume(std::function<void (float volume)> savefunc)
+SoundTransform CalculateVolume(std::function<void (float volume)> savefunc)
 {
     return [savefunc = std::move(savefunc)](const float *in, float *out, unsigned long samples)
     {
         std::copy_n(in, samples, out);
         savefunc(volume(out, samples));
+    };
+}
+
+SoundTransform CalculateHiLow(std::function<void (float hi, float low)> savefunc)
+{
+    return [savefunc = std::move(savefunc)](const float *in, float *out, unsigned long samples) {
+        std::copy_n(in, samples, out);
+        float max = std::numeric_limits<float>::lowest();
+        float min = std::numeric_limits<float>::max();
+        for(auto i = 0ul; i < samples; ++i)
+        {
+            max = std::max(max, in[i]);
+            min = std::min(min, in[i]);
+        }
+        savefunc(max, min);
     };
 }
 
@@ -131,9 +146,20 @@ class OctaveDown
 public:
     void operator()(const float *in, float * out, unsigned long samples)
     {
+        // TODO crossfade
         linearResample(in, samples / 2, out, samples);
     }
 };
+
+// SoundTransform SquareOctaveDown()
+// {
+//     return iterate([value = 1, state = 1, flipflop = 0](float in) mutable {
+//             auto sign = in >= 0.f ? 1 : -1;
+//             if(state < 0 && in > 0)
+//             {
+//                 ++state
+//         });
+// }
 
 class OctaveUp
 {
@@ -265,11 +291,18 @@ int main(int argc, char *argv[])
     //transforms.push_back(WetDryMix(OctaveDown(), Mixer(0.5f)));
     //transforms.push_back(WetDryMix(OctaveUp(), Mixer(0.5f)));
     transforms.push_back(WetDryMix(chain({AbsOctaveUp(), HiPass(sampleRate, 1000.f), AbsOctaveUp(), HiPass(sampleRate, 1000.f)}), Mixer(.5f)));
-    auto effect = combine(Compress(1.5f), &clip);
-    transforms.push_back(iterate(effect));
+    //auto effect = combine(Compress(1.5f), &clip);
+    //transforms.push_back(iterate(effect));
+    //transforms.push_back(WetDryMix(chain({iterate(Drone{sampleRate}), HiPass(sampleRate, 1000.f)}), Mixer(1.f)));
     std::atomic<float> volume(0.f);
-    transforms.push_back(calculateVolume([&volume](float arg) {
+    transforms.push_back(CalculateVolume([&volume](float arg) {
                 volume = arg;
+            }));
+    std::atomic<float> hi;
+    std::atomic<float> low;
+    transforms.push_back(CalculateHiLow([&hi, &low](float max, float min) {
+                hi = max;
+                low = min;
             }));
     AudioObject audio(chain(std::move(transforms)), sampleRate);
     Webserver server("http_root");
@@ -278,6 +311,13 @@ int main(int argc, char *argv[])
             Json message = Json::object {
                 {"cmd", "outvolume"},
                 {"args", volume.load()},
+            };
+            send(message.dump());
+        });
+    server.handleMessage("getouthilow", [&hi, &low](Json const& args, Webserver::SendFunc send) {
+            Json message = Json::object {
+                {"cmd", "outhilow"},
+                {"args", Json(Json::array { hi.load(), low.load() })},
             };
             send(message.dump());
         });
