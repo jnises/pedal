@@ -84,10 +84,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         bufferctx.clearRect(0, 0, bufferplot.width, bufferplot.height);
         if(latestbuffer !== undefined) {
-            bufferctx.fillStyle = '#000000';
+            bufferctx.strokeStyle = '#000000';
+            bufferctx.beginPath();
             _.each(latestbuffer, function(value, index) {
-                bufferctx.fillRect(index / latestbuffer.length * bufferplot.width, (1. + Math.min(1., Math.max(-1., value))) * bufferplot.height / 2, bufferplot.width / latestbuffer.length, 1);
+                var x = index / latestbuffer.length * bufferplot.width;
+                var y = (1. + Math.min(1., Math.max(-1., value))) * bufferplot.height / 2;
+                if(index === 0)
+                    bufferctx.moveTo(x, y);
+                else
+                    bufferctx.lineTo(x, y);
             });
+            bufferctx.stroke();
         }
 
         window.requestAnimationFrame(draw);
