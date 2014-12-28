@@ -54,7 +54,7 @@ SoundTransform CalculateHiLow(std::function<void (float hi, float low)> savefunc
     };
 }
 
-std::function<void (const float *, float *, unsigned long)> printAverageVolume(std::function<void (const float *in, float *out, unsigned long samples)> func)
+SoundTransform printAverageVolume(std::function<void (const float *in, float *out, unsigned long samples)> func)
 {
     return [func](const float *in, float *out, unsigned long samples)
     {
@@ -63,6 +63,13 @@ std::function<void (const float *, float *, unsigned long)> printAverageVolume(s
     };
 }
 
+SoundTransform SaveBuffer(std::function<void (const float *buffer, unsigned long samples)> savefunc)
+{
+    return [savefunc = std::move(savefunc)](const float*in, float *out, unsigned long samples) {
+        savefunc(in, samples);
+        std::copy_n(in, samples, out);
+    };
+}
 
 int main(int argc, char *argv[])
 {
@@ -106,6 +113,22 @@ int main(int argc, char *argv[])
                 hi = max;
                 low = min;
             }));
+    std::mutex sendBufferListLock;
+    std::deque<std::function<void (const float* in, unsigned long samples)>> sendBufferList;
+    transforms.push_back(SaveBuffer([&sendBufferListLock, &sendBufferList](const float * in, unsigned long samples) {
+                while(true)
+                {
+                    std::function<void (const float *in, unsigned long samples)> func;
+                    {
+                        std::lock_guard<std::mutex> lock(sendBufferListLock);
+                        if(sendBufferList.empty())
+                            return;
+                        func = std::move(sendBufferList.front());
+                        sendBufferList.pop_front();
+                    }
+                    func(in, samples);
+                }
+            }));
     AudioObject audio(chain(std::move(transforms)), sampleRate);
     Webserver server("http_root");
     using namespace json11;
@@ -135,6 +158,24 @@ int main(int argc, char *argv[])
                     {"args", Json(outargs)},
                 }};
             send(message.dump());
+        });
+    server.handleMessage("getlatestbuffer", [&sendBufferListLock, &sendBufferList](Json const& args, Webserver::SendFunc send) {
+            std::lock_guard<std::mutex> lock(sendBufferListLock);
+            sendBufferList.push_back([id = args["id"], send = std::move(send)](const float *in, unsigned long samples) {
+                    std::vector<float> buffer;
+                    buffer.reserve(samples);
+                    std::copy_n(in, samples, std::back_inserter(buffer));
+                    auto outargs = Json::object {
+                        {"buffer", buffer},
+                    };
+                    if(!id.is_null())
+                        outargs.insert(std::make_pair("id", id));
+                    auto message = Json{Json::object {
+                            {"cmd", "latestbuffer"},
+                            {"args", Json(outargs)},
+                        }};
+                    send(message.dump());
+                });
         });
     std::cerr << "Press any key to stop" << std::endl;
     std::cin.get();
