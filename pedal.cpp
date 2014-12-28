@@ -151,15 +151,26 @@ public:
     }
 };
 
-// SoundTransform SquareOctaveDown()
-// {
-//     return iterate([value = 1, state = 1, flipflop = 0](float in) mutable {
-//             auto sign = in >= 0.f ? 1 : -1;
-//             if(state < 0 && in > 0)
-//             {
-//                 ++state
-//         });
-// }
+SoundTransform SquareOctaveDown(int octaves = 1)
+{
+    return iterate([oldvalue = 1.f, state = 2, stateinit = std::pow(2, octaves)](float in) mutable {
+            if(state < 0 && in > 0 && oldvalue < 0)
+            {
+                ++state;
+            }
+            else if(state > 0 && in < 0 && oldvalue > 0)
+            {
+                --state;
+            }
+            if(state == 0)
+            {
+                auto sign = in >= 0.f ? 1 : -1;
+                state = sign * stateinit;
+            }
+            oldvalue = in;
+            return state > 0 ? 1.f : -1.f;
+        });
+}
 
 class OctaveUp
 {
@@ -288,9 +299,10 @@ int main(int argc, char *argv[])
     //auto effect = combine(Delay(sampleRate), &fuzz, &passthrough);
     //auto drone = Drone{sampleRate};
     //auto effect = combine(drone, Compress(5.f), &clip);
-    transforms.push_back(WetDryMix(OctaveDown(), Mixer(0.5f)));
+    //transforms.push_back(WetDryMix(OctaveDown(), Mixer(0.5f)));
     //transforms.push_back(WetDryMix(OctaveUp(), Mixer(0.5f)));
-    transforms.push_back(WetDryMix(chain({AbsOctaveUp(), HiPass(sampleRate, 1000.f), AbsOctaveUp(), HiPass(sampleRate, 1000.f)}), Mixer(.5f)));
+    //transforms.push_back(WetDryMix(chain({AbsOctaveUp(), HiPass(sampleRate, 1000.f), AbsOctaveUp(), HiPass(sampleRate, 1000.f)}), Mixer(.5f)));
+    transforms.push_back(WetDryMix(chain({HiPass(sampleRate, 1000.f), SquareOctaveDown(1)}), Mixer(0.05f)));
     //auto effect = combine(Compress(1.5f), &clip);
     //transforms.push_back(iterate(effect));
     //transforms.push_back(WetDryMix(chain({iterate(Drone{sampleRate}), HiPass(sampleRate, 1000.f)}), Mixer(1.f)));
