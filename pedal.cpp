@@ -151,24 +151,35 @@ public:
     }
 };
 
+std::function<float (float)> SquareOctaveDownSample(int octaves = 1)
+{
+    return [oldvalue = 1.f, stateinit = octaves, state = 0](float in) mutable {
+        if(state < 0 && in > 0 && oldvalue < 0)
+        {
+            ++state;
+        }
+        else if(state > 0 && in < 0 && oldvalue > 0)
+        {
+            --state;
+        }
+        if(state == 0)
+        {
+            auto sign = in >= 0.f ? 1 : -1;
+            state = sign * stateinit;
+        }
+        oldvalue = in;
+        return state > 0 ? 1.f : -1.f;
+    };
+}
 SoundTransform SquareOctaveDown(int octaves = 1)
 {
-    return iterate([oldvalue = 1.f, state = 2, stateinit = std::pow(2, octaves)](float in) mutable {
-            if(state < 0 && in > 0 && oldvalue < 0)
-            {
-                ++state;
-            }
-            else if(state > 0 && in < 0 && oldvalue > 0)
-            {
-                --state;
-            }
-            if(state == 0)
-            {
-                auto sign = in >= 0.f ? 1 : -1;
-                state = sign * stateinit;
-            }
-            oldvalue = in;
-            return state > 0 ? 1.f : -1.f;
+    return iterate(SquareOctaveDownSample(octaves));
+}
+
+SoundTransform SquareMultiplexOctaveDown(int octaves = 1)
+{
+    return iterate([samplefunc = SquareOctaveDownSample(octaves)](float in) {
+            return samplefunc(in) * in;
         });
 }
 
@@ -302,7 +313,7 @@ int main(int argc, char *argv[])
     //transforms.push_back(WetDryMix(OctaveDown(), Mixer(0.5f)));
     //transforms.push_back(WetDryMix(OctaveUp(), Mixer(0.5f)));
     //transforms.push_back(WetDryMix(chain({AbsOctaveUp(), HiPass(sampleRate, 1000.f), AbsOctaveUp(), HiPass(sampleRate, 1000.f)}), Mixer(.5f)));
-    transforms.push_back(WetDryMix(chain({HiPass(sampleRate, 1000.f), SquareOctaveDown(1)}), Mixer(0.05f)));
+    transforms.push_back(WetDryMix(chain({HiPass(sampleRate, 1000.f), SquareMultiplexOctaveDown(1), HiPass(sampleRate, 1000.f)}), Mixer(1.f)));
     //auto effect = combine(Compress(1.5f), &clip);
     //transforms.push_back(iterate(effect));
     //transforms.push_back(WetDryMix(chain({iterate(Drone{sampleRate}), HiPass(sampleRate, 1000.f)}), Mixer(1.f)));
