@@ -115,18 +115,41 @@ int main(int argc, char *argv[])
             }));
     std::mutex sendBufferListLock;
     std::deque<std::function<void (const float* in, unsigned long samples)>> sendBufferList;
-    transforms.push_back(SaveBuffer([&sendBufferListLock, &sendBufferList](const float * in, unsigned long samples) {
-                while(true)
+    transforms.push_back(SaveBuffer([&sendBufferListLock, &sendBufferList, bufferBuffer = std::vector<float>()](const float * in, unsigned long samples) mutable {
+                if(!bufferBuffer.empty())
                 {
-                    std::function<void (const float *in, unsigned long samples)> func;
+                    std::copy_n(in, samples - bufferBuffer.size(), std::back_inserter(bufferBuffer));
+                    while(true)
+                    {
+                        std::function<void (const float *in, unsigned long samples)> func;
+                        {
+                            std::lock_guard<std::mutex> lock(sendBufferListLock);
+                            if(sendBufferList.empty())
+                            {
+                                bufferBuffer.clear();
+                                return;
+                            }
+                            func = std::move(sendBufferList.front());
+                            sendBufferList.pop_front();
+                        }
+                        func(bufferBuffer.data(), bufferBuffer.size());
+                    }
+                }
+                else
+                {
                     {
                         std::lock_guard<std::mutex> lock(sendBufferListLock);
                         if(sendBufferList.empty())
                             return;
-                        func = std::move(sendBufferList.front());
-                        sendBufferList.pop_front();
                     }
-                    func(in, samples);
+                    for(auto i = 1ul; i < samples; ++i)
+                    {
+                        if(in[i - 1] > 0.f != in[i] > 0.f)
+                        {
+                            std::copy_n(in + i, samples - i, std::back_inserter(bufferBuffer));
+                            break;
+                        }
+                    }
                 }
             }));
     AudioObject audio(chain(std::move(transforms)), sampleRate);
