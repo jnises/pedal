@@ -184,7 +184,7 @@ namespace deepness
 
     std::function<float (float)> SquareOctaveDownSample(int octaves = 1)
     {
-        return [oldvalue = 1.f, stateinit = octaves, state = 0](float in) mutable {
+        return [oldvalue = 1.f, stateinit = std::pow(2, octaves), state = 0](float in) mutable {
             if(state < 0 && in > 0 && oldvalue < 0)
             {
                 ++state;
@@ -245,6 +245,14 @@ namespace deepness
                 auto adjustedAmount = static_cast<float>(amount / sampleRate);
                 accumulation = in * adjustedAmount + (1.f - adjustedAmount) * accumulation;
                 return in - accumulation;
+            });
+    }
+
+    SoundTransform LoPass(double sampleRate, float amount)
+    {
+        return iterate([adjustedAmount = static_cast<float>((sampleRate - amount) / sampleRate), accumulation = 0.f](float in) mutable {
+                accumulation = in * adjustedAmount + (1.f - adjustedAmount) * accumulation;
+                return accumulation;
             });
     }
 

@@ -99,10 +99,16 @@ int main(int argc, char *argv[])
     //transforms.push_back(WetDryMix(OctaveDown(), Mixer(0.5f)));
     //transforms.push_back(WetDryMix(OctaveUp(), Mixer(0.5f)));
     //transforms.push_back(WetDryMix(chain({AbsOctaveUp(), HiPass(sampleRate, 1000.f), AbsOctaveUp(), HiPass(sampleRate, 1000.f)}), Mixer(.5f)));
-    transforms.push_back(WetDryMix(chain({HiPass(sampleRate, 1000.f), SquareMultiplexOctaveDown(1), HiPass(sampleRate, 1000.f)}), Mixer(1.f)));
-    //auto effect = combine(Compress(1.5f), &clip);
+    transforms.push_back(WetDryMix(chain({
+                    HiPass(sampleRate, 10.f)
+                        , LoPass(sampleRate, 100.f)
+                        , SquareOctaveDown(1)
+                        , HiPass(sampleRate, 1000.f)
+                        }), Mixer(0.1f)));
+    auto effect = combine(Compress(1.5f), &clip);
     //transforms.push_back(iterate(effect));
     //transforms.push_back(WetDryMix(chain({iterate(Drone{sampleRate}), HiPass(sampleRate, 1000.f)}), Mixer(1.f)));
+    transforms.push_back(iterate(&clip));
     std::atomic<float> volume(0.f);
     transforms.push_back(CalculateVolume([&volume](float arg) {
                 volume = arg;
@@ -116,6 +122,7 @@ int main(int argc, char *argv[])
     std::mutex sendBufferListLock;
     std::deque<std::function<void (const float* in, unsigned long samples)>> sendBufferList;
     transforms.push_back(SaveBuffer([&sendBufferListLock, &sendBufferList, bufferBuffer = std::vector<float>()](const float * in, unsigned long samples) mutable {
+                // look for zero crossings to start buffers
                 if(!bufferBuffer.empty())
                 {
                     std::copy_n(in, samples - bufferBuffer.size(), std::back_inserter(bufferBuffer));
@@ -144,7 +151,8 @@ int main(int argc, char *argv[])
                     }
                     for(auto i = 1ul; i < samples; ++i)
                     {
-                        if(in[i - 1] > 0.f != in[i] > 0.f)
+                        //if(in[i - 1] > 0.f != in[i] > 0.f)
+                        if(in[i - 1] < 0.f && in[i] > 0.f)
                         {
                             std::copy_n(in + i, samples - i, std::back_inserter(bufferBuffer));
                             break;
@@ -184,6 +192,11 @@ int main(int argc, char *argv[])
         });
     server.handleMessage("getlatestbuffer", [&sendBufferListLock, &sendBufferList](Json const& args, Webserver::SendFunc send) {
             std::lock_guard<std::mutex> lock(sendBufferListLock);
+            if(sendBufferList.size() > 100)
+            {
+                std::cerr << "sendBufferList full" << std::endl;
+                return;
+            }
             sendBufferList.push_back([id = args["id"], send = std::move(send)](const float *in, unsigned long samples) {
                     std::vector<float> buffer;
                     buffer.reserve(samples);
