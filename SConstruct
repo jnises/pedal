@@ -1,6 +1,6 @@
 json11root = 'external/json11'
 env = Environment(CXX = 'clang++',
-                  CXXFLAGS = '--std=c++1y -I/usr/local/include -Iexternal/websocketpp -I{json11root}'.format(**globals()),
+                  CXXFLAGS = '--std=c++1y -Isrc -I/usr/local/include -Iexternal/websocketpp -I{json11root}'.format(**globals()),
                   LIBPATH = '/usr/local/lib')
 debug = ARGUMENTS.get('debug', 0)
 if int(debug):
@@ -20,5 +20,6 @@ pedalsrc = (
     'webserver.cpp',
     'soundloop.cpp',
 )
-pedal = pedalenv.Program(pedalsrc)
+pedalsrc = ['src/' + x for x in pedalsrc]
+pedal = pedalenv.Program('pedal', pedalsrc)
 Default(pedal)
