@@ -1,7 +1,24 @@
 #include "audioobject.hpp"
+#include <iostream>
 
 namespace deepness
 {
+    std::ostream &operator<<(std::ostream &out, const PaHostApiInfo *api)
+    {
+        return out << api->name;
+    }
+
+    std::ostream &operator<<(std::ostream &out, const PaDeviceInfo *device)
+    {
+        return out << "name: " << device->name << "\n"
+                   << "api: " << Pa_GetHostApiInfo(device->hostApi) << "\n"
+                   << "max input channels: " << device->maxInputChannels << "\n"
+                   << "max output channels: " << device->maxOutputChannels << "\n"
+                   << "defaultLowInputLatency: " << device->defaultLowInputLatency << "\n"
+                   << "defaultLowOutputLatency: " << device->defaultLowOutputLatency << "\n"
+                   << "defaultSampleRate: " << device->defaultSampleRate << "\n";
+    }
+
     AudioObject::AudioObject(CallbackFunc func, double sampleRate)
         :m_stream(nullptr)
         ,m_callback(std::move(func))
@@ -11,7 +28,11 @@ namespace deepness
             throw Exception(std::string("Error initializing port audio: ") + Pa_GetErrorText(err));
         PaStreamParameters inputParameters;
         std::memset(&inputParameters, 0, sizeof(PaStreamParameters));
-        inputParameters.device = Pa_GetDefaultInputDevice();
+        auto device = Pa_GetDefaultInputDevice();
+        if(Pa_GetDefaultOutputDevice() != device)
+            std::cerr << "Different input and output default devices found. Using input";
+        std::cerr << "Using device: \n" << Pa_GetDeviceInfo(device);
+        inputParameters.device = device;
         if(paNoDevice == inputParameters.device)
             throw Exception("Error finding default input device");
         inputParameters.channelCount = 1;
